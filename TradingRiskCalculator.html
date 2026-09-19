@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trading Risk Calculator</title>
+<style>
+  :root {
+    --bg: #1a1d21;
+    --panel: #2a2e35;
+    --panel-alt: #32383f;
+    --border: #3d4450;
+    --input-bg: #22262c;
+    --text: #e8eaed;
+    --text-dim: #9aa0a6;
+    --placeholder: #6b7280;
+    --green: #3d9a6a;
+    --green-soft: #2d6b4a;
+    --red: #c45c5c;
+    --red-soft: #8a3f3f;
+    --accent: #5b8def;
+    --accent-hover: #4a79d4;
+    --warn: #c9a227;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+    min-height: 100%;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 18px 48px;
+  }
+
+  header.app-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 16px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex: 1 1 auto;
+  }
+  header h1 span {
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-left: 8px;
+  }
+
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  label.field-label {
+    display: block;
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    min-width: 0;
+  }
+  input[type="text"]:focus,
+  input[type="number"]:focus,
+  select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(91,141,239,.25);
+  }
+  input::placeholder { color: var(--placeholder); }
+  input.invalid { border-color: var(--red); }
+
+  .ticker-input {
+    width: 100px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .side-toggle {
+    display: inline-flex;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .side-toggle button {
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, color .15s;
+  }
+  .side-toggle button.active.long {
+    background: var(--green-soft);
+    color: #c8f0d8;
+  }
+  .side-toggle button.active.short {
+    background: var(--red-soft);
+    color: #f0c8c8;
+  }
+
+  button.btn {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .15s, border-color .15s;
+  }
+  button.btn:hover { background: #3a414a; }
+  button.btn-accent {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  button.btn-accent:hover { background: var(--accent-hover); }
+  button.btn-danger {
+    background: transparent;
+    border-color: var(--red-soft);
+    color: var(--red);
+  }
+  button.btn-danger:hover { background: var(--red-soft); color: #fff; }
+  button.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+  }
+  button.btn-icon {
+    width: 32px; height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 820px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2 {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .panel h2 .hint {
+    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .core-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 560px) {
+    .core-row { grid-template-columns: 1fr; }
+  }
+  .core-row .num-big {
+    font-size: 1.35rem;
+    font-weight: 700;
+    width: 100%;
+  }
+  .stop-field input { border-color: var(--red-soft); }
+  .stop-field .field-label { color: var(--red); }
+
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 120px 36px;
+    gap: 8px;
+    align-items: center;
+    background: var(--panel-alt);
+    border-radius: 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+  }
+  .entry-row.bad { border-color: var(--red); }
+  .entry-row .idx {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .entry-row .weight-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .entry-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    height: 4px;
+  }
+  .entry-row .pct-label {
+    min-width: 40px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+  .entry-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .weight-sum {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .weight-sum.ok { color: var(--green); }
+  .weight-sum.bad { color: var(--warn); }
+
+  .results-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 560px) {
+    .results-summary { grid-template-columns: 1fr 1fr; }
+  }
+  .stat {
+    background: var(--panel-alt);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .stat .lbl {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .stat .val {
+    font-size: 1.55rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .stat .val.green { color: var(--green); }
+  .stat .val.red { color: var(--red); }
+  .stat .val.dim { color: var(--text-dim); font-size: 1.2rem; }
+
+  table.levels {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  table.levels th {
+    text-align: left;
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.levels td {
+    padding: 8px;
+    border-bottom: 1px solid rgba(61,68,80,.5);
+  }
+  table.levels tr:last-child td { border-bottom: none; }
+  table.levels .shares { font-weight: 700; font-size: 1.05rem; }
+
+  .warn-box {
+    background: rgba(201,162,39,.12);
+    border: 1px solid var(--warn);
+    color: #e8d48a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.88rem;
+    display: none;
+  }
+  .warn-box.visible { display: block; }
+  .error-box {
+    background: rgba(196,92,92,.12);
+    border: 1px solid var(--red);
+    color: #e8a0a0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.88rem;
+    display: none;
+  }
+  .error-box.visible { display: block; }
+
+  .empty-hint {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    padding: 18px 8px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .empty-hint strong { color: var(--text); }
+
+  .exit-mode {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .exit-mode label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 0.88rem;
+  }
+  .exit-mode input { accent-color: var(--accent); }
+
+  .exit-list { display: flex; flex-direction: column; gap: 8px; }
+  .exit-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 36px;
+    gap: 8px;
+    align-items: center;
+  }
+  .exit-row.full-mode { grid-template-columns: 1fr; }
+
+  .pnl-line {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pnl-line .amount {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gap-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  .gap-result {
+    text-align: right;
+    min-width: 140px;
+  }
+  .gap-result .lbl {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .gap-result .val {
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  footer.note {
+    margin-top: 18px;
+    color: var(--placeholder);
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .full-width { grid-column: 1 / -1; }
+  .save-status {
+    font-size: 0.78rem;
+    color: var(--green);
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .save-status.show { opacity: 1; }
+</style>
+</head>
+<body>
+<!--
+  Smoke check (NFLX-style long):
+    max_risk=300, stop=74.50, entries=[78,76,75] farthest→nearest
+    soft weights 20/30/50 → expected total_shares=218, total_risk_used=300.0
+    levels: 42 @ 78 ($147), 65 @ 76 ($97.5), 111 @ 75 ($55.5)
+  Console assert runs on load — see sizing.smokeCheckNFLX().
+-->
+<div class="wrap">
+  <header class="app-header">
+    <h1>Trading Risk Calculator <span>desk tool · whole shares · never over risk</span></h1>
+    <div class="toolbar">
+      <div>
+        <label class="field-label" for="ticker">Ticker</label>
+        <input id="ticker" class="ticker-input" type="text" maxlength="12" placeholder="NFLX" autocomplete="off" />
+      </div>
+      <div>
+        <label class="field-label">Side</label>
+        <div class="side-toggle" role="group" aria-label="Long or Short">
+          <button type="button" id="btnLong" class="active long">Long</button>
+          <button type="button" id="btnShort" class="short">Short</button>
+        </div>
+      </div>
+      <div>
+        <label class="field-label" for="savedPlans">Saved plans</label>
+        <select id="savedPlans" style="min-width:120px">
+          <option value="">— none —</option>
+        </select>
+      </div>
+      <div style="align-self:flex-end; display:flex; gap:8px; align-items:center;">
+        <button type="button" class="btn" id="btnNew">New plan</button>
+        <button type="button" class="btn btn-accent" id="btnSave">Save</button>
+        <button type="button" class="btn btn-danger btn-sm" id="btnDelete" title="Delete saved plan for this ticker">Delete</button>
+        <span class="save-status" id="saveStatus">Saved</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- CORE -->
+    <section class="panel">
+      <h2>Core <span class="hint">max risk · stop · optional target</span></h2>
+      <div class="core-row">
+        <div>
+          <label class="field-label" for="maxRisk">Max risk $</label>
+          <input id="maxRisk" class="num-big" type="number" min="0" step="1" placeholder="300" />
+        </div>
+        <div class="stop-field">
+          <label class="field-label" for="stop">Stop</label>
+          <input id="stop" class="num-big" type="number" min="0" step="0.01" placeholder="74.50" />
+        </div>
+        <div>
+          <label class="field-label" for="target">Target <span style="opacity:.7">(optional)</span></label>
+          <input id="target" class="num-big" type="number" min="0" step="0.01" placeholder="—" />
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULTS SUMMARY (sticky feel) -->
+    <section class="panel">
+      <h2>Position summary</h2>
+      <div id="errorBox" class="error-box"></div>
+      <div id="warnBox" class="warn-box"></div>
+      <div class="results-summary" id="summaryStats">
+        <div class="stat"><div class="lbl">Total shares</div><div class="val dim" id="statShares">—</div></div>
+        <div class="stat"><div class="lbl">Avg cost</div><div class="val dim" id="statAvg">—</div></div>
+        <div class="stat"><div class="lbl">Risk used</div><div class="val dim" id="statRisk">—</div></div>
+        <div class="stat"><div class="lbl">Risk remaining</div><div class="val dim" id="statRemain">—</div></div>
+        <div class="stat"><div class="lbl">Target P&amp;L</div><div class="val dim" id="statTargetPnl">—</div></div>
+        <div class="stat"><div class="lbl">Max risk cap</div><div class="val dim" id="statCap">—</div></div>
+      </div>
+    </section>
+
+    <!-- ENTRIES -->
+    <section class="panel">
+      <h2>
+        Entry levels
+        <span class="hint">farthest → nearest stop · soft weights heavier near stop</span>
+      </h2>
+      <div class="entry-list" id="entryList"></div>
+      <div class="weight-sum" id="weightSum"></div>
+      <div class="entry-actions">
+        <button type="button" class="btn btn-sm" id="btnAddEntry">+ Add entry</button>
+        <button type="button" class="btn btn-sm" id="btnSortEntries">Sort farthest→nearest</button>
+        <button type="button" class="btn btn-sm" id="btnResetWeights">Reset soft weights</button>
+      </div>
+      <p class="empty-hint" id="entryHint" style="display:none">
+        Add entry prices above your stop (long) or below (short).<br />
+        Example: <strong>78 / 76 / 75</strong> with stop <strong>74.50</strong>
+      </p>
+    </section>
+
+    <!-- PER-LEVEL RESULTS -->
+    <section class="panel">
+      <h2>Per-level sizing</h2>
+      <div id="levelsEmpty" class="empty-hint">
+        Enter max risk, stop, and at least one valid entry to size shares.
+      </div>
+      <table class="levels" id="levelsTable" style="display:none">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Entry</th>
+            <th>Weight</th>
+            <th>Shares</th>
+            <th>$/sh risk</th>
+            <th>Tranche risk</th>
+          </tr>
+        </thead>
+        <tbody id="levelsBody"></tbody>
+      </table>
+    </section>
+
+    <!-- EXITS -->
+    <section class="panel">
+      <h2>Exits <span class="hint">full dump or peels</span></h2>
+      <div class="exit-mode">
+        <label><input type="radio" name="exitMode" value="full" checked /> Full dump</label>
+        <label><input type="radio" name="exitMode" value="partial" /> Multiple peels</label>
+      </div>
+      <div class="exit-list" id="exitList"></div>
+      <div class="entry-actions" id="exitAddRow" style="display:none">
+        <button type="button" class="btn btn-sm" id="btnAddExit">+ Add peel</button>
+      </div>
+      <div class="pnl-line">
+        <span style="color:var(--text-dim)">Exit P&amp;L</span>
+        <span class="amount dim" id="exitPnl">—</span>
+      </div>
+      <div id="exitDetail" style="margin-top:8px; font-size:0.85rem; color:var(--text-dim)"></div>
+    </section>
+
+    <!-- GAP -->
+    <section class="panel">
+      <h2>Gap preview <span class="hint">estimated P&amp;L if price gaps to…</span></h2>
+      <div class="gap-row">
+        <div>
+          <label class="field-label" for="gapPrice">Gap price</label>
+          <input id="gapPrice" type="number" min="0" step="0.01" placeholder="e.g. 72.00" style="width:100%; font-size:1.15rem; font-weight:600" />
+        </div>
+        <div class="gap-result">
+          <div class="lbl">Est. P&amp;L</div>
+          <div class="val dim" id="gapPnl">—</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="note">
+    Plans save to this browser’s localStorage (one plan per ticker). Double-click this file anytime — no install, no CDN.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+   * Sizing math — ported exactly from sizing.py
+   * ============================================================ */
+
+  class SizingError extends Error {
+    constructor(msg) { super(msg); this.name = "SizingError"; }
+  }
+
+  function validateEntryVsStop(side, entry, stop) {
+    side = String(side).toLowerCase().trim();
+    if (side !== "long" && side !== "short") {
+      return "Invalid side: '" + side + "' (expected 'long' or 'short')";
+    }
+    if (entry <= 0 || stop <= 0) return "Entry and stop prices must be positive";
+    if (side === "long" && entry <= stop) {
+      return "Long entry (" + entry + ") must be above stop (" + stop + ")";
+    }
+    if (side === "short" && entry >= stop) {
+      return "Short entry (" + entry + ") must be below stop (" + stop + ")";
+    }
+    return null;
+  }
+
+  function riskPerShare(side, entry, stop) {
+    const err = validateEntryVsStop(side, entry, stop);
+    if (err) throw new SizingError(err);
+    return Math.abs(entry - stop);
+  }
+
+  function softWeightsNearStop(n) {
+    if (n < 1) throw new SizingError("Need at least one entry level");
+    if (n === 1) return [1.0];
+    if (n === 2) return [0.40, 0.60];
+    if (n === 3) return [0.20, 0.30, 0.50];
+    const raw = [];
+    for (let i = 1; i <= n; i++) raw.push(i);
+    const total = raw.reduce((a, b) => a + b, 0);
+    return raw.map((x) => x / total);
+  }
+
+  function normalizeWeights(weights) {
+    if (!weights || !weights.length) throw new SizingError("Weights list is empty");
+    const cleaned = weights.map(Number);
+    if (cleaned.some((w) => w < 0)) throw new SizingError("Weights cannot be negative");
+    const total = cleaned.reduce((a, b) => a + b, 0);
+    if (total <= 0) throw new SizingError("Weights must sum to a positive value");
+    return cleaned.map((w) => w / total);
+  }
+
+  function maxSharesForRisk(riskBudget, rps) {
+    if (riskBudget < 0) throw new SizingError("Risk budget cannot be negative");
+    if (rps <= 0) throw new SizingError("Risk per share must be positive");
+    if (riskBudget === 0) return 0;
+    return Math.floor(riskBudget / rps); // floor — never over
+  }
+
+  function sizeLevels(side, entries, stop, maxRisk, weights) {
+    side = String(side).toLowerCase().trim();
+    if (side !== "long" && side !== "short") {
+      throw new SizingError("Invalid side: '" + side + "'");
+    }
+    if (maxRisk < 0) throw new SizingError("Max risk cannot be negative");
+    if (!entries || !entries.length) {
+      throw new SizingError("At least one entry price is required");
+    }
+
+    const warnings = [];
+    for (let i = 0; i < entries.length; i++) {
+      const msg = validateEntryVsStop(side, Number(entries[i]), Number(stop));
+      if (msg) warnings.push("Level " + (i + 1) + ": " + msg);
+    }
+    if (warnings.length) throw new SizingError(warnings.join("; "));
+
+    const n = entries.length;
+    let w;
+    if (weights == null) {
+      w = softWeightsNearStop(n);
+    } else {
+      if (weights.length !== n) {
+        throw new SizingError(
+          "Weight count (" + weights.length + ") must match entry count (" + n + ")"
+        );
+      }
+      w = normalizeWeights(weights);
+    }
+
+    const rpsList = entries.map((e) => riskPerShare(side, Number(e), Number(stop)));
+    const blendedRps = w.reduce((acc, wi, i) => acc + wi * rpsList[i], 0);
+    if (blendedRps <= 0) throw new SizingError("Blended risk per share must be positive");
+
+    const totalCapShares = maxSharesForRisk(maxRisk, blendedRps);
+    const rawShares = w.map((wi) => Math.floor(totalCapShares * wi));
+    let assigned = rawShares.reduce((a, b) => a + b, 0);
+    let remainder = totalCapShares - assigned;
+    const order = Array.from({ length: n }, (_, i) => i).sort((a, b) => w[b] - w[a]);
+    for (const idx of order) {
+      if (remainder <= 0) break;
+      rawShares[idx] += 1;
+      remainder -= 1;
+    }
+
+    function totalRisk(shares) {
+      return shares.reduce((acc, s, i) => acc + s * rpsList[i], 0);
+    }
+
+    const shares = rawShares.slice();
+    let riskNow = totalRisk(shares);
+    let improved = true;
+    while (improved) {
+      improved = false;
+      for (const idx of order) {
+        const addCost = rpsList[idx];
+        if (riskNow + addCost <= maxRisk + 1e-9) {
+          shares[idx] += 1;
+          riskNow += addCost;
+          improved = true;
+        }
+      }
+    }
+
+    const stripOrder = Array.from({ length: n }, (_, i) => i).sort((a, b) => w[a] - w[b]);
+    while (totalRisk(shares) > maxRisk + 1e-9) {
+      let stripped = false;
+      for (const idx of stripOrder) {
+        if (shares[idx] > 0) {
+          shares[idx] -= 1;
+          stripped = true;
+          break;
+        }
+      }
+      if (!stripped) break;
+    }
+
+    const levels = [];
+    for (let i = 0; i < n; i++) {
+      levels.push({
+        entry: Number(entries[i]),
+        weight: w[i],
+        shares: shares[i],
+        risk_per_share: rpsList[i],
+        tranche_risk: round4(shares[i] * rpsList[i]),
+      });
+    }
+
+    const totalShares = shares.reduce((a, b) => a + b, 0);
+    const totalRiskUsed = round4(totalRisk(shares));
+    let avgCost = 0;
+    if (totalShares > 0) {
+      avgCost =
+        shares.reduce((acc, s, i) => acc + s * Number(entries[i]), 0) / totalShares;
+    }
+
+    return {
+      side: side,
+      stop: Number(stop),
+      max_risk: Number(maxRisk),
+      levels: levels,
+      total_shares: totalShares,
+      total_risk_used: totalRiskUsed,
+      avg_cost: round6(avgCost),
+      warnings: warnings,
+      get risk_remaining() {
+        return Math.max(0, this.max_risk - this.total_risk_used);
+      },
+    };
+  }
+
+  function targetPnl(side, avgCost, shares, target) {
+    side = String(side).toLowerCase().trim();
+    if (shares < 0) throw new SizingError("Shares cannot be negative");
+    if (side === "long") return round4((target - avgCost) * shares);
+    if (side === "short") return round4((avgCost - target) * shares);
+    throw new SizingError("Invalid side: '" + side + "'");
+  }
+
+  function planExits(side, avgCost, totalShares, exitPrices, exitPcts) {
+    side = String(side).toLowerCase().trim();
+    if (totalShares < 0) throw new SizingError("Shares cannot be negative");
+    if (!exitPrices || !exitPrices.length) {
+      throw new SizingError("At least one exit price required");
+    }
+
+    const n = exitPrices.length;
+    let pcts;
+    if (exitPcts == null) {
+      if (n === 1) pcts = [1.0];
+      else throw new SizingError("exit_pcts required when multiple exit prices");
+    } else {
+      if (exitPcts.length !== n) {
+        throw new SizingError("exit_pcts length must match exit_prices");
+      }
+      pcts = exitPcts.map(Number);
+      if (pcts.some((p) => p < 0)) {
+        throw new SizingError("Exit percentages cannot be negative");
+      }
+      if (pcts.reduce((a, b) => a + b, 0) > 1.0 + 1e-9) {
+        throw new SizingError("Exit percentages cannot sum over 100%");
+      }
+    }
+
+    const raw = pcts.map((p) => Math.floor(totalShares * p));
+    let targetTotal = Math.round(pcts.reduce((a, b) => a + b, 0) * totalShares);
+    targetTotal = Math.min(targetTotal, totalShares);
+    let rem = targetTotal - raw.reduce((a, b) => a + b, 0);
+    for (let i = n - 1; i >= 0; i--) {
+      if (rem <= 0) break;
+      if (pcts[i] > 0 || i === n - 1) {
+        raw[i] += rem;
+        rem = 0;
+      }
+    }
+
+    if (
+      Math.abs(pcts.reduce((a, b) => a + b, 0) - 1.0) < 1e-9 &&
+      raw.reduce((a, b) => a + b, 0) < totalShares
+    ) {
+      raw[raw.length - 1] += totalShares - raw.reduce((a, b) => a + b, 0);
+    }
+
+    const tranches = [];
+    for (let i = 0; i < n; i++) {
+      const pnl = targetPnl(side, avgCost, raw[i], Number(exitPrices[i]));
+      tranches.push({
+        price: Number(exitPrices[i]),
+        pct: pcts[i],
+        shares: raw[i],
+        pnl: pnl,
+      });
+    }
+
+    const exited = tranches.reduce((a, t) => a + t.shares, 0);
+    return {
+      tranches: tranches,
+      total_shares_exited: exited,
+      total_pnl: round4(tranches.reduce((a, t) => a + t.pnl, 0)),
+      remaining_shares: totalShares - exited,
+    };
+  }
+
+  function gapLoss(side, avgCost, shares, gapPrice) {
+    return targetPnl(side, avgCost, shares, gapPrice);
+  }
+
+  function sortEntriesFarthestToNearest(side, entries, stop) {
+    side = String(side).toLowerCase().trim();
+    const nums = entries.map(Number);
+    if (side === "long") return nums.slice().sort((a, b) => b - a);
+    if (side === "short") return nums.slice().sort((a, b) => a - b);
+    throw new SizingError("Invalid side: '" + side + "'");
+  }
+
+  function round4(x) { return Math.round(x * 10000) / 10000; }
+  function round6(x) { return Math.round(x * 1000000) / 1000000; }
+
+  /* Smoke check — NFLX-style */
+  function smokeCheckNFLX() {
+    const r = sizeLevels("long", [78, 76, 75], 74.5, 300);
+    console.assert(r.total_risk_used <= 300, "NFLX smoke: total risk must be ≤ 300", r);
+    console.assert(r.total_shares === 218, "NFLX smoke: expected 218 shares", r);
+    console.assert(r.levels[0].shares === 42, "NFLX L1 shares", r.levels[0]);
+    console.assert(r.levels[1].shares === 65, "NFLX L2 shares", r.levels[1]);
+    console.assert(r.levels[2].shares === 111, "NFLX L3 shares", r.levels[2]);
+    console.assert(
+      Math.abs(r.total_risk_used - 300) < 1e-6,
+      "NFLX smoke: risk used should be 300",
+      r.total_risk_used
+    );
+    console.log(
+      "[TradingRiskCalculator] NFLX smoke OK — shares=" +
+        r.total_shares +
+        " risk=" +
+        r.total_risk_used
+    );
+  }
+
+  /* ============================================================
+   * UI state
+   * ============================================================ */
+
+  const STORAGE_KEY = "trading-risk-calculator:plans:v1";
+
+  const state = {
+    side: "long",
+    entries: [{ price: "", weightPct: null }], // weightPct null → use soft
+    customWeights: false,
+    exits: [{ price: "", pct: 100 }],
+    exitMode: "full",
+    lastResult: null,
+  };
+
+  const $ = (id) => document.getElementById(id);
+
+  function fmtMoney(n, digits) {
+    if (n == null || !isFinite(n)) return "—";
+    const d = digits == null ? 2 : digits;
+    const sign = n < 0 ? "-" : "";
+    return sign + "$" + Math.abs(n).toLocaleString(undefined, {
+      minimumFractionDigits: d,
+      maximumFractionDigits: d,
+    });
+  }
+
+  function fmtNum(n, digits) {
+    if (n == null || !isFinite(n)) return "—";
+    return Number(n).toLocaleString(undefined, {
+      minimumFractionDigits: digits || 0,
+      maximumFractionDigits: digits == null ? 2 : digits,
+    });
+  }
+
+  function parseNum(el) {
+    const v = parseFloat(el.value);
+    return isFinite(v) ? v : NaN;
+  }
+
+  function loadPlans() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return {};
+      const data = JSON.parse(raw);
+      if (data && data.plans && typeof data.plans === "object") return data.plans;
+      return {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function savePlans(plans) {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ version: 1, plans: plans })
+    );
+  }
+
+  function refreshPlanDropdown(selectTicker) {
+    const sel = $("savedPlans");
+    const plans = loadPlans();
+    const tickers = Object.keys(plans).sort();
+    const cur = selectTicker != null ? selectTicker : sel.value;
+    sel.innerHTML = '<option value="">— none —</option>';
+    tickers.forEach((t) => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t;
+      sel.appendChild(opt);
+    });
+    if (cur && plans[cur]) sel.value = cur;
+  }
+
+  function currentWeightsFractions() {
+    const n = state.entries.length;
+    if (!state.customWeights) return softWeightsNearStop(Math.max(n, 1));
+    const raw = state.entries.map((e) =>
+      e.weightPct == null ? 0 : Number(e.weightPct)
+    );
+    const sum = raw.reduce((a, b) => a + b, 0);
+    if (sum <= 0) return softWeightsNearStop(n);
+    return raw.map((w) => w / sum);
+  }
+
+  function applySoftWeightsToState() {
+    const n = state.entries.length;
+    if (n < 1) return;
+    const w = softWeightsNearStop(n);
+    state.entries.forEach((e, i) => {
+      e.weightPct = Math.round(w[i] * 1000) / 10; // one decimal %
+    });
+    state.customWeights = false;
+  }
+
+  function renormalizeFromSlider(changedIdx, newPct) {
+    const n = state.entries.length;
+    if (n === 1) {
+      state.entries[0].weightPct = 100;
+      state.customWeights = true;
+      return;
+    }
+    newPct = Math.max(0, Math.min(100, newPct));
+    const others = [];
+    let otherSum = 0;
+    for (let i = 0; i < n; i++) {
+      if (i === changedIdx) continue;
+      const p = state.entries[i].weightPct == null ? 0 : Number(state.entries[i].weightPct);
+      others.push({ i: i, p: p });
+      otherSum += p;
+    }
+    const remain = 100 - newPct;
+    state.entries[changedIdx].weightPct = Math.round(newPct * 10) / 10;
+    if (otherSum <= 0) {
+      const each = remain / others.length;
+      others.forEach((o) => {
+        state.entries[o.i].weightPct = Math.round(each * 10) / 10;
+      });
+    } else {
+      others.forEach((o) => {
+        state.entries[o.i].weightPct =
+          Math.round((o.p / otherSum) * remain * 10) / 10;
+      });
+    }
+    // Fix rounding drift onto last non-changed
+    let sum = state.entries.reduce((a, e) => a + Number(e.weightPct), 0);
+    const drift = Math.round((100 - sum) * 10) / 10;
+    if (Math.abs(drift) >= 0.05) {
+      for (let i = n - 1; i >= 0; i--) {
+        if (i !== changedIdx) {
+          state.entries[i].weightPct =
+            Math.round((Number(state.entries[i].weightPct) + drift) * 10) / 10;
+          break;
+        }
+      }
+    }
+    state.customWeights = true;
+  }
+
+  function renderEntries() {
+    const list = $("entryList");
+    list.innerHTML = "";
+    const stop = parseNum($("stop"));
+    const side = state.side;
+
+    if (!state.customWeights || state.entries.some((e) => e.weightPct == null)) {
+      applySoftWeightsToState();
+      state.customWeights = false;
+    }
+
+    state.entries.forEach((entry, idx) => {
+      const row = document.createElement("div");
+      row.className = "entry-row";
+      const price = parseFloat(entry.price);
+      if (isFinite(price) && isFinite(stop) && stop > 0) {
+        const msg = validateEntryVsStop(side, price, stop);
+        if (msg) row.classList.add("bad");
+      }
+
+      const idxEl = document.createElement("div");
+      idxEl.className = "idx";
+      idxEl.textContent = String(idx + 1);
+
+      const priceInput = document.createElement("input");
+      priceInput.type = "number";
+      priceInput.min = "0";
+      priceInput.step = "0.01";
+      priceInput.placeholder = idx === 0 ? "78.00" : "";
+      priceInput.value = entry.price;
+      priceInput.addEventListener("input", () => {
+        state.entries[idx].price = priceInput.value;
+        recalc();
+      });
+
+      const weightWrap = document.createElement("div");
+      weightWrap.className = "weight-wrap";
+      const range = document.createElement("input");
+      range.type = "range";
+      range.min = "0";
+      range.max = "100";
+      range.step = "0.5";
+      range.value = entry.weightPct == null ? 0 : entry.weightPct;
+      const pctLabel = document.createElement("span");
+      pctLabel.className = "pct-label";
+      pctLabel.textContent =
+        (entry.weightPct == null ? 0 : entry.weightPct).toFixed(1) + "%";
+      range.addEventListener("input", () => {
+        renormalizeFromSlider(idx, parseFloat(range.value));
+        renderEntries();
+        recalc();
+      });
+      weightWrap.appendChild(range);
+      weightWrap.appendChild(pctLabel);
+
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "btn btn-icon btn-danger";
+      rm.title = "Remove";
+      rm.textContent = "×";
+      rm.disabled = state.entries.length <= 1;
+      rm.addEventListener("click", () => {
+        if (state.entries.length <= 1) return;
+        state.entries.splice(idx, 1);
+        applySoftWeightsToState();
+        renderEntries();
+        recalc();
+      });
+
+      row.appendChild(idxEl);
+      row.appendChild(priceInput);
+      row.appendChild(weightWrap);
+      row.appendChild(rm);
+      list.appendChild(row);
+    });
+
+    const sum = state.entries.reduce(
+      (a, e) => a + (e.weightPct == null ? 0 : Number(e.weightPct)),
+      0
+    );
+    const ws = $("weightSum");
+    ws.textContent =
+      "Weights sum: " + sum.toFixed(1) + "% · " +
+      (state.customWeights ? "custom (renormalized)" : "soft defaults (heavier near stop)");
+    ws.className = "weight-sum " + (Math.abs(sum - 100) < 0.2 ? "ok" : "bad");
+
+    $("entryHint").style.display = state.entries.every((e) => !e.price) ? "block" : "none";
+  }
+
+  function renderExits() {
+    const list = $("exitList");
+    list.innerHTML = "";
+    const full = state.exitMode === "full";
+    $("exitAddRow").style.display = full ? "none" : "flex";
+
+    if (full) {
+      if (!state.exits.length) state.exits = [{ price: "", pct: 100 }];
+      state.exits = [state.exits[0]];
+      state.exits[0].pct = 100;
+    }
+
+    state.exits.forEach((ex, idx) => {
+      const row = document.createElement("div");
+      row.className = "exit-row" + (full ? " full-mode" : "");
+
+      const priceInput = document.createElement("input");
+      priceInput.type = "number";
+      priceInput.min = "0";
+      priceInput.step = "0.01";
+      priceInput.placeholder = full ? "Dump price" : "Peel price";
+      priceInput.value = ex.price;
+      priceInput.addEventListener("input", () => {
+        state.exits[idx].price = priceInput.value;
+        recalc();
+      });
+      row.appendChild(priceInput);
+
+      if (!full) {
+        const pctInput = document.createElement("input");
+        pctInput.type = "number";
+        pctInput.min = "0";
+        pctInput.max = "100";
+        pctInput.step = "1";
+        pctInput.placeholder = "%";
+        pctInput.value = ex.pct;
+        pctInput.title = "% of position";
+        pctInput.addEventListener("input", () => {
+          state.exits[idx].pct = pctInput.value;
+          recalc();
+        });
+        row.appendChild(pctInput);
+
+        const rm = document.createElement("button");
+        rm.type = "button";
+        rm.className = "btn btn-icon btn-danger";
+        rm.textContent = "×";
+        rm.disabled = state.exits.length <= 1;
+        rm.addEventListener("click", () => {
+          if (state.exits.length <= 1) return;
+          state.exits.splice(idx, 1);
+          renderExits();
+          recalc();
+        });
+        row.appendChild(rm);
+      }
+
+      list.appendChild(row);
+    });
+  }
+
+  function setPnlClass(el, value) {
+    el.classList.remove("green", "red", "dim");
+    if (value == null || !isFinite(value)) {
+      el.classList.add("dim");
+      el.textContent = "—";
+      return;
+    }
+    if (value > 0) el.classList.add("green");
+    else if (value < 0) el.classList.add("red");
+    else el.classList.add("dim");
+    el.textContent = (value > 0 ? "+" : "") + fmtMoney(value);
+  }
+
+  function recalc() {
+    const side = state.side;
+    const maxRisk = parseNum($("maxRisk"));
+    const stop = parseNum($("stop"));
+    const target = parseNum($("target"));
+    const gapPrice = parseNum($("gapPrice"));
+
+    $("btnLong").classList.toggle("active", side === "long");
+    $("btnLong").classList.toggle("long", true);
+    $("btnShort").classList.toggle("active", side === "short");
+    $("btnShort").classList.toggle("short", true);
+
+    const errorBox = $("errorBox");
+    const warnBox = $("warnBox");
+    errorBox.classList.remove("visible");
+    warnBox.classList.remove("visible");
+    errorBox.textContent = "";
+    warnBox.textContent = "";
+
+    const entryPrices = [];
+    const warnings = [];
+    state.entries.forEach((e, i) => {
+      const p = parseFloat(e.price);
+      if (!isFinite(p) || p <= 0) return;
+      entryPrices.push(p);
+      if (isFinite(stop) && stop > 0) {
+        const msg = validateEntryVsStop(side, p, stop);
+        if (msg) warnings.push("Level " + (i + 1) + ": " + msg);
+      }
+    });
+
+    // Mark invalid inputs
+    $("stop").classList.toggle("invalid", !(stop > 0));
+    $("maxRisk").classList.toggle("invalid", !(maxRisk >= 0) || !isFinite(maxRisk));
+
+    if (warnings.length) {
+      errorBox.textContent = warnings.join(" · ");
+      errorBox.classList.add("visible");
+    }
+
+    let result = null;
+    state.lastResult = null;
+
+    const canSize =
+      entryPrices.length > 0 &&
+      isFinite(stop) &&
+      stop > 0 &&
+      isFinite(maxRisk) &&
+      maxRisk >= 0 &&
+      warnings.length === 0;
+
+    if (canSize) {
+      try {
+        const weights = currentWeightsFractions();
+        // Align weights to only filled entries — rebuild from state for filled only
+        const filledIdx = [];
+        state.entries.forEach((e, i) => {
+          const p = parseFloat(e.price);
+          if (isFinite(p) && p > 0) filledIdx.push(i);
+        });
+        let wUse;
+        if (state.customWeights) {
+          const raw = filledIdx.map((i) => Number(state.entries[i].weightPct) || 0);
+          wUse = normalizeWeights(raw.length ? raw : [1]);
+        } else {
+          wUse = softWeightsNearStop(entryPrices.length);
+        }
+        result = sizeLevels(side, entryPrices, stop, maxRisk, wUse);
+        state.lastResult = result;
+      } catch (err) {
+        errorBox.textContent = err.message || String(err);
+        errorBox.classList.add("visible");
+      }
+    }
+
+    // Summary
+    if (result) {
+      $("statShares").textContent = fmtNum(result.total_shares, 0);
+      $("statShares").className = "val";
+      $("statAvg").textContent = fmtMoney(result.avg_cost, 4);
+      $("statAvg").className = "val";
+      $("statRisk").textContent = fmtMoney(result.total_risk_used);
+      $("statRisk").className =
+        "val " + (result.total_risk_used > maxRisk + 1e-6 ? "red" : "");
+      $("statRemain").textContent = fmtMoney(result.risk_remaining);
+      $("statRemain").className = "val green";
+      $("statCap").textContent = fmtMoney(maxRisk);
+      $("statCap").className = "val dim";
+
+      if (isFinite(target) && target > 0 && result.total_shares > 0) {
+        const pnl = targetPnl(side, result.avg_cost, result.total_shares, target);
+        setPnlClass($("statTargetPnl"), pnl);
+      } else {
+        $("statTargetPnl").textContent = "—";
+        $("statTargetPnl").className = "val dim";
+      }
+
+      // Levels table
+      $("levelsEmpty").style.display = "none";
+      $("levelsTable").style.display = "table";
+      const tbody = $("levelsBody");
+      tbody.innerHTML = "";
+      result.levels.forEach((lv, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML =
+          "<td>" + (i + 1) + "</td>" +
+          "<td>" + fmtNum(lv.entry, 2) + "</td>" +
+          "<td>" + (lv.weight * 100).toFixed(1) + "%</td>" +
+          "<td class='shares'>" + lv.shares + "</td>" +
+          "<td>" + fmtMoney(lv.risk_per_share) + "</td>" +
+          "<td>" + fmtMoney(lv.tranche_risk) + "</td>";
+        tbody.appendChild(tr);
+      });
+    } else {
+      ["statShares", "statAvg", "statRisk", "statRemain", "statTargetPnl", "statCap"].forEach(
+        (id) => {
+          $(id).textContent = "—";
+          $(id).className = "val dim";
+        }
+      );
+      if (isFinite(maxRisk) && maxRisk >= 0) {
+        $("statCap").textContent = fmtMoney(maxRisk);
+      }
+      $("levelsEmpty").style.display = "block";
+      $("levelsTable").style.display = "none";
+    }
+
+    // Exits
+    const exitPnlEl = $("exitPnl");
+    const exitDetail = $("exitDetail");
+    exitDetail.textContent = "";
+    if (result && result.total_shares > 0) {
+      try {
+        const prices = [];
+        const pcts = [];
+        state.exits.forEach((ex) => {
+          const p = parseFloat(ex.price);
+          if (!isFinite(p) || p <= 0) return;
+          prices.push(p);
+          if (state.exitMode === "full") pcts.push(1.0);
+          else pcts.push((parseFloat(ex.pct) || 0) / 100);
+        });
+        if (prices.length) {
+          const er = planExits(
+            side,
+            result.avg_cost,
+            result.total_shares,
+            prices,
+            pcts
+          );
+          setPnlClass(exitPnlEl, er.total_pnl);
+          exitDetail.textContent = er.tranches
+            .map(
+              (t) =>
+                t.shares +
+                " sh @ " +
+                fmtNum(t.price, 2) +
+                " → " +
+                (t.pnl >= 0 ? "+" : "") +
+                fmtMoney(t.pnl) +
+                " (" +
+                (t.pct * 100).toFixed(0) +
+                "%)"
+            )
+            .join("  ·  ");
+          if (er.remaining_shares > 0) {
+            exitDetail.textContent +=
+              "  ·  remaining " + er.remaining_shares + " sh";
+          }
+        } else {
+          exitPnlEl.textContent = "—";
+          exitPnlEl.className = "amount dim";
+        }
+      } catch (err) {
+        exitPnlEl.textContent = "—";
+        exitPnlEl.className = "amount dim";
+        exitDetail.textContent = err.message || String(err);
+        warnBox.textContent = err.message || String(err);
+        warnBox.classList.add("visible");
+      }
+    } else {
+      exitPnlEl.textContent = "—";
+      exitPnlEl.className = "amount dim";
+    }
+
+    // Gap
+    const gapEl = $("gapPnl");
+    if (result && result.total_shares > 0 && isFinite(gapPrice) && gapPrice > 0) {
+      const g = gapLoss(side, result.avg_cost, result.total_shares, gapPrice);
+      setPnlClass(gapEl, g);
+    } else {
+      gapEl.textContent = "—";
+      gapEl.className = "val dim";
+    }
+
+    // Re-color entry rows without full re-render of focus
+    // (renderEntries already called on structural changes)
+  }
+
+  function newPlan() {
+    state.side = "long";
+    state.entries = [{ price: "", weightPct: null }];
+    state.customWeights = false;
+    state.exits = [{ price: "", pct: 100 }];
+    state.exitMode = "full";
+    state.lastResult = null;
+    $("ticker").value = "";
+    $("maxRisk").value = "";
+    $("stop").value = "";
+    $("target").value = "";
+    $("gapPrice").value = "";
+    document.querySelector('input[name="exitMode"][value="full"]').checked = true;
+    $("savedPlans").value = "";
+    applySoftWeightsToState();
+    renderEntries();
+    renderExits();
+    recalc();
+  }
+
+  function collectPlan() {
+    const ticker = $("ticker").value.trim().toUpperCase();
+    const weights = state.customWeights
+      ? state.entries.map((e) => (Number(e.weightPct) || 0) / 100)
+      : null;
+    const entries = state.entries
+      .map((e) => parseFloat(e.price))
+      .filter((p) => isFinite(p) && p > 0);
+    const exitPrices = state.exits
+      .map((e) => parseFloat(e.price))
+      .filter((p) => isFinite(p) && p > 0);
+    const exitPcts =
+      state.exitMode === "full"
+        ? [1.0]
+        : state.exits
+            .filter((e) => isFinite(parseFloat(e.price)) && parseFloat(e.price) > 0)
+            .map((e) => (parseFloat(e.pct) || 0) / 100);
+    const target = parseNum($("target"));
+    const gap = parseNum($("gapPrice"));
+    return {
+      ticker: ticker,
+      side: state.side,
+      entries: entries,
+      stop: parseNum($("stop")) || 0,
+      max_risk: parseNum($("maxRisk")) || 0,
+      target: isFinite(target) ? target : null,
+      weights: weights,
+      exit_plan: {
+        mode: state.exitMode,
+        prices: exitPrices,
+        pcts: exitPcts,
+      },
+      gap_price: isFinite(gap) ? gap : null,
+      entry_ui: state.entries.map((e) => ({
+        price: e.price,
+        weightPct: e.weightPct,
+      })),
+      customWeights: state.customWeights,
+    };
+  }
+
+  function applyPlan(plan) {
+    if (!plan) return;
+    $("ticker").value = plan.ticker || "";
+    state.side = (plan.side || "long").toLowerCase();
+    $("maxRisk").value = plan.max_risk || "";
+    $("stop").value = plan.stop || "";
+    $("target").value = plan.target != null ? plan.target : "";
+    $("gapPrice").value = plan.gap_price != null ? plan.gap_price : "";
+
+    if (plan.entry_ui && plan.entry_ui.length) {
+      state.entries = plan.entry_ui.map((e) => ({
+        price: e.price != null ? String(e.price) : "",
+        weightPct: e.weightPct,
+      }));
+      state.customWeights = !!plan.customWeights;
+    } else if (plan.entries && plan.entries.length) {
+      const w =
+        plan.weights && plan.weights.length === plan.entries.length
+          ? plan.weights
+          : softWeightsNearStop(plan.entries.length);
+      state.entries = plan.entries.map((p, i) => ({
+        price: String(p),
+        weightPct: Math.round(w[i] * 1000) / 10,
+      }));
+      state.customWeights = !!(plan.weights && plan.weights.length);
+    } else {
+      state.entries = [{ price: "", weightPct: null }];
+      state.customWeights = false;
+    }
+
+    const ep = plan.exit_plan || {};
+    state.exitMode = ep.mode === "partial" ? "partial" : "full";
+    document.querySelector(
+      'input[name="exitMode"][value="' + state.exitMode + '"]'
+    ).checked = true;
+    if (ep.prices && ep.prices.length) {
+      state.exits = ep.prices.map((p, i) => ({
+        price: String(p),
+        pct:
+          ep.pcts && ep.pcts[i] != null
+            ? Math.round(ep.pcts[i] * 1000) / 10
+            : state.exitMode === "full"
+            ? 100
+            : 50,
+      }));
+    } else {
+      state.exits = [{ price: "", pct: 100 }];
+    }
+
+    if (!state.customWeights) applySoftWeightsToState();
+    renderEntries();
+    renderExits();
+    recalc();
+  }
+
+  function flashSaved() {
+    const el = $("saveStatus");
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 1600);
+  }
+
+  /* Events */
+  $("btnLong").addEventListener("click", () => {
+    state.side = "long";
+    renderEntries();
+    recalc();
+  });
+  $("btnShort").addEventListener("click", () => {
+    state.side = "short";
+    renderEntries();
+    recalc();
+  });
+
+  ["maxRisk", "stop", "target", "gapPrice"].forEach((id) => {
+    $(id).addEventListener("input", () => {
+      if (id === "stop") renderEntries();
+      recalc();
+    });
+  });
+
+  $("btnAddEntry").addEventListener("click", () => {
+    state.entries.push({ price: "", weightPct: null });
+    applySoftWeightsToState();
+    renderEntries();
+    recalc();
+  });
+
+  $("btnSortEntries").addEventListener("click", () => {
+    const stop = parseNum($("stop"));
+    const priced = state.entries.filter((e) => isFinite(parseFloat(e.price)));
+    const empty = state.entries.filter((e) => !isFinite(parseFloat(e.price)));
+    if (!priced.length || !(stop > 0)) return;
+    const sortedPrices = sortEntriesFarthestToNearest(
+      state.side,
+      priced.map((e) => parseFloat(e.price)),
+      stop
+    );
+    // Keep weight association by re-soft after sort (order change → soft reset)
+    state.entries = sortedPrices
+      .map((p) => ({ price: String(p), weightPct: null }))
+      .concat(empty.map(() => ({ price: "", weightPct: null })));
+    if (!state.entries.length) state.entries = [{ price: "", weightPct: null }];
+    applySoftWeightsToState();
+    renderEntries();
+    recalc();
+  });
+
+  $("btnResetWeights").addEventListener("click", () => {
+    applySoftWeightsToState();
+    renderEntries();
+    recalc();
+  });
+
+  document.querySelectorAll('input[name="exitMode"]').forEach((r) => {
+    r.addEventListener("change", () => {
+      state.exitMode = r.value;
+      if (state.exitMode === "full") {
+        state.exits = [{ price: state.exits[0] ? state.exits[0].price : "", pct: 100 }];
+      } else if (state.exits.length === 1) {
+        state.exits = [
+          { price: state.exits[0].price, pct: 50 },
+          { price: "", pct: 50 },
+        ];
+      }
+      renderExits();
+      recalc();
+    });
+  });
+
+  $("btnAddExit").addEventListener("click", () => {
+    state.exits.push({ price: "", pct: 0 });
+    renderExits();
+    recalc();
+  });
+
+  $("btnNew").addEventListener("click", () => newPlan());
+
+  $("btnSave").addEventListener("click", () => {
+    const plan = collectPlan();
+    if (!plan.ticker) {
+      $("warnBox").textContent = "Enter a ticker before saving.";
+      $("warnBox").classList.add("visible");
+      $("ticker").focus();
+      return;
+    }
+    const plans = loadPlans();
+    plans[plan.ticker] = plan;
+    savePlans(plans);
+    refreshPlanDropdown(plan.ticker);
+    flashSaved();
+  });
+
+  $("btnDelete").addEventListener("click", () => {
+    const ticker = $("ticker").value.trim().toUpperCase() || $("savedPlans").value;
+    if (!ticker) return;
+    const plans = loadPlans();
+    if (plans[ticker]) {
+      delete plans[ticker];
+      savePlans(plans);
+      refreshPlanDropdown("");
+      flashSaved();
+    }
+  });
+
+  $("savedPlans").addEventListener("change", () => {
+    const t = $("savedPlans").value;
+    if (!t) return;
+    const plans = loadPlans();
+    if (plans[t]) applyPlan(plans[t]);
+  });
+
+  $("ticker").addEventListener("input", () => {
+    $("ticker").value = $("ticker").value.toUpperCase();
+  });
+
+  /* Init */
+  smokeCheckNFLX();
+  refreshPlanDropdown("");
+  applySoftWeightsToState();
+  renderEntries();
+  renderExits();
+  recalc();
+
+  // Expose for console debugging
+  window.TradingRiskCalc = {
+    sizeLevels: sizeLevels,
+    softWeightsNearStop: softWeightsNearStop,
+    planExits: planExits,
+    gapLoss: gapLoss,
+    smokeCheckNFLX: smokeCheckNFLX,
+  };
+})();
+</script>
+</body>
+</html>
