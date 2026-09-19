@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trading-risk-calculator"
+version = "1.0.0"
+description = "Desktop trading position-size / risk calculator (manual prices, whole shares)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "customtkinter>=5.2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pyinstaller>=6.0"]
+
+[project.scripts]
+trading-risk-calculator = "trading_risk_calculator.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
